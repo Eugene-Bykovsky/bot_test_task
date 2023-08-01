@@ -1,8 +1,10 @@
 import logging
+import re
 
 from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (Application, ContextTypes, CommandHandler,
-                          CallbackQueryHandler, CallbackContext)
+                          CallbackQueryHandler, CallbackContext,
+                          MessageHandler, filters)
 
 from config import (TOKEN, SELFIE, HIGH_SCHOOL_PHOTO, ABOUT_HOBBY,
                     TEXT_LIST, REPO, GPT, SQL, LOVE_STORY)
@@ -110,6 +112,30 @@ async def handle_buttons(update: Update, _: CallbackContext) -> None:
         await get_text(query, query.data)
 
 
+async def handle_text_message(update: Update, _: CallbackContext) -> None:
+    """Обрабатывает текстовые сообщения."""
+    text = update.message.text.lower()
+
+    if re.search(r"селфи|последнее", text):
+        await get_photo(update, str(SELFIE))
+    elif re.search(r"фото|школ", text):
+        await get_photo(update, str(HIGH_SCHOOL_PHOTO))
+    elif re.search(r"хобби|увлечение", text):
+        await get_text(update, str(ABOUT_HOBBY))
+    elif re.search(r"ссылка|репозиторий|репо", text):
+        await get_text(update, str(REPO))
+    elif re.search(r"рассказ|gpt", text):
+        await get_voice(update, str(GPT))
+    elif re.search(r"разница|sql|nosql", text):
+        await get_voice(update, str(SQL))
+    elif re.search(r"история|первой|любви|первая|любовь", text):
+        await get_voice(update, str(LOVE_STORY))
+    else:
+        await update.message.reply_text("Извините, я не понимаю ваш запрос. "
+                                        "Пожалуйста, выберите команду из "
+                                        "предложенного списка.")
+
+
 # ОБРАБОТКА КНОПОЧНЫХ КОММАНД #
 
 # ГЛАВНЫЙ ОБРАБОТЧИК ВХОДЯЩИХ СООБЩЕНИЙ #
@@ -121,5 +147,6 @@ def handle_incoming_message() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("commands", commands))
     application.add_handler(CallbackQueryHandler(handle_buttons))
-
+    application.add_handler(
+        MessageHandler(filters.TEXT, handle_text_message))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
