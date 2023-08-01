@@ -1,10 +1,12 @@
 import logging
 import re
+import speech_recognition as sr
 
 from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (Application, ContextTypes, CommandHandler,
                           CallbackQueryHandler, CallbackContext,
                           MessageHandler, filters)
+from pydub import AudioSegment
 
 from config import (TOKEN, SELFIE, HIGH_SCHOOL_PHOTO, ABOUT_HOBBY,
                     TEXT_LIST, REPO, GPT, SQL, LOVE_STORY)
@@ -112,10 +114,38 @@ async def handle_buttons(update: Update, _: CallbackContext) -> None:
         await get_text(query, query.data)
 
 
-async def handle_text_message(update: Update, _: CallbackContext) -> None:
-    """Обрабатывает текстовые сообщения."""
-    text = update.message.text.lower()
+async def handle_text_or_voice_message(update: Update,
+                                       context: CallbackContext) -> None:
+    """Обрабатывает текстовые и голосовые сообщения."""
+    if update.message.text:
+        text = update.message.text.lower()
+    elif update.message.voice:
+        # ffmpeg_path = which("ffmpeg")
+        # AudioSegment.converter = ffmpeg_path
 
+        voice = update.message.voice
+        file = await context.bot.get_file(voice.file_id)
+
+        # Download the audio file using the 'download_to_drive' method
+        file_path = "voice.ogg"
+        await file.download_to_drive(custom_path=file_path)
+
+        # Конвертируем в формат WAV
+        wav_file_path = "voice.wav"
+        AudioSegment.from_ogg(file_path).export(wav_file_path, format="wav")
+
+        recognizer = sr.Recognizer()
+        with sr.AudioFile('voice.wav') as source:
+            audio_text = recognizer.record(source)
+
+        text = recognizer.recognize_google(audio_text, language='ru-RU')
+    else:
+        await update.message.reply_text("Извините, я не понимаю ваш запрос. "
+                                        "Пожалуйста, выберите команду из "
+                                        "предложенного списка.")
+        return
+
+    # Handle commands based on recognized or entered text
     if re.search(r"селфи|последнее", text):
         await get_photo(update, str(SELFIE))
     elif re.search(r"фото|школ", text):
@@ -148,5 +178,6 @@ def handle_incoming_message() -> None:
     application.add_handler(CommandHandler("commands", commands))
     application.add_handler(CallbackQueryHandler(handle_buttons))
     application.add_handler(
-        MessageHandler(filters.TEXT, handle_text_message))
+        MessageHandler(filters.TEXT | filters.VOICE,
+                       handle_text_or_voice_message))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
