@@ -57,10 +57,10 @@ async def get_photo(query, choice) -> None:
     """Отправляет фотографию"""
     print('get_photo')
     if choice == str(SELFIE):
-        await query.message.reply_photo(open('images/selfie.jpeg', 'rb'))
+        await query.message.reply_photo(open('images/selfie.JPG', 'rb'))
         return
     await query.message.reply_photo(open(
-        'images/high_school_photo.jpeg', 'rb'))
+        'images/high_school_photo.JPG', 'rb'))
 
 
 async def get_voice(query, choice) -> None:
@@ -114,23 +114,22 @@ async def handle_buttons(update: Update, _: CallbackContext) -> None:
         await get_text(query, query.data)
 
 
+# ОБРАБОТКА КНОПОЧНЫХ КОММАНД #
+
+# ОБРАБОТЧИК ТЕКСТОВЫХ И ГОЛОСОВЫХ КОММАНД #
+
 async def handle_text_or_voice_message(update: Update,
                                        context: CallbackContext) -> None:
     """Обрабатывает текстовые и голосовые сообщения."""
     if update.message.text:
         text = update.message.text.lower()
     elif update.message.voice:
-        # ffmpeg_path = which("ffmpeg")
-        # AudioSegment.converter = ffmpeg_path
-
         voice = update.message.voice
         file = await context.bot.get_file(voice.file_id)
 
-        # Download the audio file using the 'download_to_drive' method
         file_path = "voice.ogg"
         await file.download_to_drive(custom_path=file_path)
 
-        # Конвертируем в формат WAV
         wav_file_path = "voice.wav"
         AudioSegment.from_ogg(file_path).export(wav_file_path, format="wav")
 
@@ -166,9 +165,10 @@ async def handle_text_or_voice_message(update: Update,
                                         "предложенного списка.")
 
 
-# ОБРАБОТКА КНОПОЧНЫХ КОММАНД #
+# ОБРАБОТЧИК ТЕКСТОВЫХ И ГОЛОСОВЫХ КОММАНД #
 
 # ГЛАВНЫЙ ОБРАБОТЧИК ВХОДЯЩИХ СООБЩЕНИЙ #
+
 def handle_incoming_message() -> None:
     """Обработывает входящие сообщения."""
 
@@ -181,3 +181,5 @@ def handle_incoming_message() -> None:
         MessageHandler(filters.TEXT | filters.VOICE,
                        handle_text_or_voice_message))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+# ГЛАВНЫЙ ОБРАБОТЧИК ВХОДЯЩИХ СООБЩЕНИЙ #
